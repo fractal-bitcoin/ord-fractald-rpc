@@ -106,18 +106,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
-name = "ord-bitcoincore-rpc"
-version = "0.17.1"
-dependencies = [
- "bitcoin-private",
- "jsonrpc",
- "log",
- "ord-bitcoincore-rpc-json",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "ord-bitcoincore-rpc-json"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,6 +113,18 @@ checksum = "5bb35088f918c775bc27fa79e372d034892b216fb7900aeedd6e06654879ad33"
 dependencies = [
  "bitcoin",
  "bitcoin-private",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "ord-fractald-rpc"
+version = "0.17.2"
+dependencies = [
+ "bitcoin-private",
+ "jsonrpc",
+ "log",
+ "ord-bitcoincore-rpc-json",
  "serde",
  "serde_json",
 ]
