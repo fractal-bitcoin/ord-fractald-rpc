@@ -20,7 +20,7 @@ use jsonrpc;
 use serde;
 use serde_json;
 
-use crate::bitcoin::address::{NetworkUnchecked, NetworkChecked};
+use crate::bitcoin::address::{NetworkChecked, NetworkUnchecked};
 use crate::bitcoin::hashes::hex::FromHex;
 use crate::bitcoin::secp256k1::ecdsa::Signature;
 use crate::bitcoin::{
@@ -235,7 +235,7 @@ pub trait RpcApi: Sized {
         T::query(&self, &id)
     }
 
-    fn get_network_info(&self) -> Result<json::GetNetworkInfoResult> {
+    fn get_network_info(&self) -> Result<crate::rpc_json::GetNetworkInfoResult> {
         self.call("getnetworkinfo", &[])
     }
 
@@ -265,7 +265,10 @@ pub trait RpcApi: Sized {
             opt_into_json(label)?,
             opt_into_json(address_type)?,
         ];
-        self.call("addmultisigaddress", handle_defaults(&mut args, &[into_json("")?, null()]))
+        self.call(
+            "addmultisigaddress",
+            handle_defaults(&mut args, &[into_json("")?, null()]),
+        )
     }
 
     fn load_wallet(&self, wallet: &str) -> Result<json::LoadWalletResult> {
@@ -294,7 +297,10 @@ pub trait RpcApi: Sized {
         ];
         self.call(
             "createwallet",
-            handle_defaults(&mut args, &[false.into(), false.into(), into_json("")?, false.into()]),
+            handle_defaults(
+                &mut args,
+                &[false.into(), false.into(), into_json("")?, false.into()],
+            ),
         )
     }
 
@@ -388,11 +394,11 @@ pub trait RpcApi: Sized {
 
     /// Returns a data structure containing various state info regarding
     /// blockchain processing.
-    fn get_blockchain_info(&self) -> Result<json::GetBlockchainInfoResult> {
+    fn get_blockchain_info(&self) -> Result<crate::rpc_json::GetBlockchainInfoResult> {
         let raw: serde_json::Value = self.call("getblockchaininfo", &[])?;
         Ok(serde_json::from_value(raw)?)
     }
-    
+
     /// Returns the numbers of block in the longest chain.
     fn get_block_count(&self) -> Result<u64> {
         self.call("getblockcount", &[])
@@ -425,7 +431,11 @@ pub trait RpcApi: Sized {
         txid: &bitcoin::Txid,
         block_hash: Option<&bitcoin::BlockHash>,
     ) -> Result<Transaction> {
-        let mut args = [into_json(txid)?, into_json(false)?, opt_into_json(block_hash)?];
+        let mut args = [
+            into_json(txid)?,
+            into_json(false)?,
+            opt_into_json(block_hash)?,
+        ];
         let hex: String = self.call("getrawtransaction", handle_defaults(&mut args, &[null()]))?;
         deserialize_hex(&hex)
     }
@@ -435,7 +445,11 @@ pub trait RpcApi: Sized {
         txid: &bitcoin::Txid,
         block_hash: Option<&bitcoin::BlockHash>,
     ) -> Result<String> {
-        let mut args = [into_json(txid)?, into_json(false)?, opt_into_json(block_hash)?];
+        let mut args = [
+            into_json(txid)?,
+            into_json(false)?,
+            opt_into_json(block_hash)?,
+        ];
         self.call("getrawtransaction", handle_defaults(&mut args, &[null()]))
     }
 
@@ -444,7 +458,11 @@ pub trait RpcApi: Sized {
         txid: &bitcoin::Txid,
         block_hash: Option<&bitcoin::BlockHash>,
     ) -> Result<json::GetRawTransactionResult> {
-        let mut args = [into_json(txid)?, into_json(true)?, opt_into_json(block_hash)?];
+        let mut args = [
+            into_json(txid)?,
+            into_json(true)?,
+            opt_into_json(block_hash)?,
+        ];
         self.call("getrawtransaction", handle_defaults(&mut args, &[null()]))
     }
 
@@ -460,10 +478,15 @@ pub trait RpcApi: Sized {
         minconf: Option<usize>,
         include_watchonly: Option<bool>,
     ) -> Result<Amount> {
-        let mut args = ["*".into(), opt_into_json(minconf)?, opt_into_json(include_watchonly)?];
-        Ok(Amount::from_btc(
-            self.call("getbalance", handle_defaults(&mut args, &[0.into(), null()]))?,
-        )?)
+        let mut args = [
+            "*".into(),
+            opt_into_json(minconf)?,
+            opt_into_json(include_watchonly)?,
+        ];
+        Ok(Amount::from_btc(self.call(
+            "getbalance",
+            handle_defaults(&mut args, &[0.into(), null()]),
+        )?)?)
     }
 
     fn get_balances(&self) -> Result<json::GetBalancesResult> {
@@ -472,9 +495,10 @@ pub trait RpcApi: Sized {
 
     fn get_received_by_address(&self, address: &Address, minconf: Option<u32>) -> Result<Amount> {
         let mut args = [address.to_string().into(), opt_into_json(minconf)?];
-        Ok(Amount::from_btc(
-            self.call("getreceivedbyaddress", handle_defaults(&mut args, &[null()]))?,
-        )?)
+        Ok(Amount::from_btc(self.call(
+            "getreceivedbyaddress",
+            handle_defaults(&mut args, &[null()]),
+        )?)?)
     }
 
     fn get_transaction(
@@ -499,7 +523,10 @@ pub trait RpcApi: Sized {
             opt_into_json(skip)?,
             opt_into_json(include_watchonly)?,
         ];
-        self.call("listtransactions", handle_defaults(&mut args, &[10.into(), 0.into(), null()]))
+        self.call(
+            "listtransactions",
+            handle_defaults(&mut args, &[10.into(), 0.into(), null()]),
+        )
     }
 
     fn list_since_block(
@@ -524,7 +551,11 @@ pub trait RpcApi: Sized {
         vout: u32,
         include_mempool: Option<bool>,
     ) -> Result<Option<json::GetTxOutResult>> {
-        let mut args = [into_json(txid)?, into_json(vout)?, opt_into_json(include_mempool)?];
+        let mut args = [
+            into_json(txid)?,
+            into_json(vout)?,
+            opt_into_json(include_mempool)?,
+        ];
         opt_result(self.call("gettxout", handle_defaults(&mut args, &[null()]))?)
     }
 
@@ -544,8 +575,15 @@ pub trait RpcApi: Sized {
         label: Option<&str>,
         rescan: Option<bool>,
     ) -> Result<()> {
-        let mut args = [pubkey.to_string().into(), opt_into_json(label)?, opt_into_json(rescan)?];
-        self.call("importpubkey", handle_defaults(&mut args, &[into_json("")?, null()]))
+        let mut args = [
+            pubkey.to_string().into(),
+            opt_into_json(label)?,
+            opt_into_json(rescan)?,
+        ];
+        self.call(
+            "importpubkey",
+            handle_defaults(&mut args, &[into_json("")?, null()]),
+        )
     }
 
     fn import_private_key(
@@ -554,8 +592,15 @@ pub trait RpcApi: Sized {
         label: Option<&str>,
         rescan: Option<bool>,
     ) -> Result<()> {
-        let mut args = [privkey.to_string().into(), opt_into_json(label)?, opt_into_json(rescan)?];
-        self.call("importprivkey", handle_defaults(&mut args, &[into_json("")?, null()]))
+        let mut args = [
+            privkey.to_string().into(),
+            opt_into_json(label)?,
+            opt_into_json(rescan)?,
+        ];
+        self.call(
+            "importprivkey",
+            handle_defaults(&mut args, &[into_json("")?, null()]),
+        )
     }
 
     fn import_address(
@@ -564,8 +609,15 @@ pub trait RpcApi: Sized {
         label: Option<&str>,
         rescan: Option<bool>,
     ) -> Result<()> {
-        let mut args = [address.to_string().into(), opt_into_json(label)?, opt_into_json(rescan)?];
-        self.call("importaddress", handle_defaults(&mut args, &[into_json("")?, null()]))
+        let mut args = [
+            address.to_string().into(),
+            opt_into_json(label)?,
+            opt_into_json(rescan)?,
+        ];
+        self.call(
+            "importaddress",
+            handle_defaults(&mut args, &[into_json("")?, null()]),
+        )
     }
 
     fn import_address_script(
@@ -605,7 +657,10 @@ pub trait RpcApi: Sized {
         req: Vec<json::ImportDescriptors>,
     ) -> Result<Vec<json::ImportMultiResult>> {
         let json_request = serde_json::to_value(req)?;
-        self.call("importdescriptors", handle_defaults(&mut [json_request.into()], &[null()]))
+        self.call(
+            "importdescriptors",
+            handle_defaults(&mut [json_request.into()], &[null()]),
+        )
     }
 
     fn list_descriptors(&self, private: Option<bool>) -> Result<json::ListDescriptorsResult> {
@@ -637,7 +692,13 @@ pub trait RpcApi: Sized {
             opt_into_json(include_unsafe)?,
             opt_into_json(query_options)?,
         ];
-        let defaults = [into_json(0)?, into_json(9999999)?, empty_arr(), into_json(true)?, null()];
+        let defaults = [
+            into_json(0)?,
+            into_json(9999999)?,
+            empty_arr(),
+            into_json(true)?,
+            null(),
+        ];
         self.call("listunspent", handle_defaults(&mut args, &defaults))
     }
 
@@ -677,7 +738,10 @@ pub trait RpcApi: Sized {
             opt_into_json(address_filter)?,
         ];
         let defaults = [1.into(), false.into(), false.into(), null()];
-        self.call("listreceivedbyaddress", handle_defaults(&mut args, &defaults))
+        self.call(
+            "listreceivedbyaddress",
+            handle_defaults(&mut args, &defaults),
+        )
     }
 
     fn create_psbt(
@@ -688,7 +752,9 @@ pub trait RpcApi: Sized {
         replaceable: Option<bool>,
     ) -> Result<String> {
         let outs_converted = serde_json::Map::from_iter(
-            outputs.iter().map(|(k, v)| (k.clone(), serde_json::Value::from(v.to_btc()))),
+            outputs
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::from(v.to_btc()))),
         );
         self.call(
             "createpsbt",
@@ -709,7 +775,8 @@ pub trait RpcApi: Sized {
         replaceable: Option<bool>,
     ) -> Result<String> {
         let outs_converted = serde_json::Map::from_iter(
-            outs.iter().map(|(k, v)| (k.clone(), serde_json::Value::from(v.to_btc()))),
+            outs.iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::from(v.to_btc()))),
         );
         let mut args = [
             into_json(utxos)?,
@@ -718,7 +785,10 @@ pub trait RpcApi: Sized {
             opt_into_json(replaceable)?,
         ];
         let defaults = [into_json(0i64)?, null()];
-        self.call("createrawtransaction", handle_defaults(&mut args, &defaults))
+        self.call(
+            "createrawtransaction",
+            handle_defaults(&mut args, &defaults),
+        )
     }
 
     fn create_raw_transaction(
@@ -739,7 +809,10 @@ pub trait RpcApi: Sized {
     ) -> Result<json::DecodeRawTransactionResult> {
         let mut args = [tx.raw_hex().into(), opt_into_json(is_witness)?];
         let defaults = [null()];
-        self.call("decoderawtransaction", handle_defaults(&mut args, &defaults))
+        self.call(
+            "decoderawtransaction",
+            handle_defaults(&mut args, &defaults),
+        )
     }
 
     fn fund_raw_transaction<R: RawTx>(
@@ -748,7 +821,11 @@ pub trait RpcApi: Sized {
         options: Option<&json::FundRawTransactionOptions>,
         is_witness: Option<bool>,
     ) -> Result<json::FundRawTransactionResult> {
-        let mut args = [tx.raw_hex().into(), opt_into_json(options)?, opt_into_json(is_witness)?];
+        let mut args = [
+            tx.raw_hex().into(),
+            opt_into_json(options)?,
+            opt_into_json(is_witness)?,
+        ];
         let defaults = [empty_obj(), null()];
         self.call("fundrawtransaction", handle_defaults(&mut args, &defaults))
     }
@@ -777,9 +854,16 @@ pub trait RpcApi: Sized {
         utxos: Option<&[json::SignRawTransactionInput]>,
         sighash_type: Option<json::SigHashType>,
     ) -> Result<json::SignRawTransactionResult> {
-        let mut args = [tx.raw_hex().into(), opt_into_json(utxos)?, opt_into_json(sighash_type)?];
+        let mut args = [
+            tx.raw_hex().into(),
+            opt_into_json(utxos)?,
+            opt_into_json(sighash_type)?,
+        ];
         let defaults = [empty_arr(), null()];
-        self.call("signrawtransactionwithwallet", handle_defaults(&mut args, &defaults))
+        self.call(
+            "signrawtransactionwithwallet",
+            handle_defaults(&mut args, &defaults),
+        )
     }
 
     fn sign_raw_transaction_with_key<R: RawTx>(
@@ -796,15 +880,21 @@ pub trait RpcApi: Sized {
             opt_into_json(sighash_type)?,
         ];
         let defaults = [empty_arr(), null()];
-        self.call("signrawtransactionwithkey", handle_defaults(&mut args, &defaults))
+        self.call(
+            "signrawtransactionwithkey",
+            handle_defaults(&mut args, &defaults),
+        )
     }
 
     fn test_mempool_accept<R: RawTx>(
         &self,
         rawtxs: &[R],
     ) -> Result<Vec<json::TestMempoolAcceptResult>> {
-        let hexes: Vec<serde_json::Value> =
-            rawtxs.to_vec().into_iter().map(|r| r.raw_hex().into()).collect();
+        let hexes: Vec<serde_json::Value> = rawtxs
+            .to_vec()
+            .into_iter()
+            .map(|r| r.raw_hex().into())
+            .collect();
         self.call("testmempoolaccept", &[hexes.into()])
     }
 
@@ -818,7 +908,11 @@ pub trait RpcApi: Sized {
         signature: &Signature,
         message: &str,
     ) -> Result<bool> {
-        let args = [address.to_string().into(), signature.to_string().into(), into_json(message)?];
+        let args = [
+            address.to_string().into(),
+            signature.to_string().into(),
+            into_json(message)?,
+        ];
         self.call("verifymessage", &args)
     }
 
@@ -828,11 +922,17 @@ pub trait RpcApi: Sized {
         label: Option<&str>,
         address_type: Option<json::AddressType>,
     ) -> Result<Address<NetworkUnchecked>> {
-        self.call("getnewaddress", &[opt_into_json(label)?, opt_into_json(address_type)?])
+        self.call(
+            "getnewaddress",
+            &[opt_into_json(label)?, opt_into_json(address_type)?],
+        )
     }
 
     /// Generate new address for receiving change
-    fn get_raw_change_address(&self, address_type: Option<json::AddressType>) -> Result<Address<NetworkUnchecked>> {
+    fn get_raw_change_address(
+        &self,
+        address_type: Option<json::AddressType>,
+    ) -> Result<Address<NetworkUnchecked>> {
         self.call("getrawchangeaddress", &[opt_into_json(address_type)?])
     }
 
@@ -848,7 +948,10 @@ pub trait RpcApi: Sized {
         block_num: u64,
         address: &Address<NetworkChecked>,
     ) -> Result<Vec<bitcoin::BlockHash>> {
-        self.call("generatetoaddress", &[block_num.into(), address.to_string().into()])
+        self.call(
+            "generatetoaddress",
+            &[block_num.into(), address.to_string().into()],
+        )
     }
 
     /// Mine up to block_num blocks immediately (before the RPC call returns)
@@ -920,7 +1023,14 @@ pub trait RpcApi: Sized {
             "sendtoaddress",
             handle_defaults(
                 &mut args,
-                &["".into(), "".into(), false.into(), false.into(), 6.into(), null()],
+                &[
+                    "".into(),
+                    "".into(),
+                    false.into(),
+                    false.into(),
+                    6.into(),
+                    null(),
+                ],
             ),
         )
     }
@@ -982,7 +1092,12 @@ pub trait RpcApi: Sized {
     fn add_ban(&self, subnet: &str, bantime: u64, absolute: bool) -> Result<()> {
         self.call(
             "setban",
-            &[into_json(&subnet)?, into_json("add")?, into_json(&bantime)?, into_json(&absolute)?],
+            &[
+                into_json(&subnet)?,
+                into_json("add")?,
+                into_json(&bantime)?,
+                into_json(&absolute)?,
+            ],
         )
     }
 
@@ -1066,7 +1181,9 @@ pub trait RpcApi: Sized {
         bip32derivs: Option<bool>,
     ) -> Result<json::WalletCreateFundedPsbtResult> {
         let outputs_converted = serde_json::Map::from_iter(
-            outputs.iter().map(|(k, v)| (k.clone(), serde_json::Value::from(v.to_btc()))),
+            outputs
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::from(v.to_btc()))),
         );
         let mut args = [
             into_json(inputs)?,
@@ -1077,7 +1194,10 @@ pub trait RpcApi: Sized {
         ];
         self.call(
             "walletcreatefundedpsbt",
-            handle_defaults(&mut args, &[0.into(), serde_json::Map::new().into(), false.into()]),
+            handle_defaults(
+                &mut args,
+                &[0.into(), serde_json::Map::new().into(), false.into()],
+            ),
         )
     }
 
@@ -1096,7 +1216,9 @@ pub trait RpcApi: Sized {
         ];
         let defaults = [
             true.into(),
-            into_json(json::SigHashType::from(bitcoin::sighash::EcdsaSighashType::All))?,
+            into_json(json::SigHashType::from(
+                bitcoin::sighash::EcdsaSighashType::All,
+            ))?,
             true.into(),
         ];
         self.call("walletprocesspsbt", handle_defaults(&mut args, &defaults))
@@ -1123,7 +1245,11 @@ pub trait RpcApi: Sized {
         self.call("finalizepsbt", handle_defaults(&mut args, &[true.into()]))
     }
 
-    fn derive_addresses(&self, descriptor: &str, range: Option<[u32; 2]>) -> Result<Vec<Address<NetworkUnchecked>>> {
+    fn derive_addresses(
+        &self,
+        descriptor: &str,
+        range: Option<[u32; 2]>,
+    ) -> Result<Vec<Address<NetworkUnchecked>>> {
         let mut args = [into_json(descriptor)?, opt_into_json(range)?];
         self.call("deriveaddresses", handle_defaults(&mut args, &[null()]))
     }
@@ -1140,8 +1266,10 @@ pub trait RpcApi: Sized {
             pub start_height: usize,
             pub stop_height: Option<usize>,
         }
-        let res: Response =
-            self.call("rescanblockchain", handle_defaults(&mut args, &[0.into(), null()]))?;
+        let res: Response = self.call(
+            "rescanblockchain",
+            handle_defaults(&mut args, &[0.into(), null()]),
+        )?;
         Ok((res.start_height, res.stop_height))
     }
 
@@ -1153,9 +1281,15 @@ pub trait RpcApi: Sized {
         hash_or_height: Option<json::HashOrHeight>,
         use_index: Option<bool>,
     ) -> Result<json::GetTxOutSetInfoResult> {
-        let mut args =
-            [opt_into_json(hash_type)?, opt_into_json(hash_or_height)?, opt_into_json(use_index)?];
-        self.call("gettxoutsetinfo", handle_defaults(&mut args, &[null(), null(), null()]))
+        let mut args = [
+            opt_into_json(hash_type)?,
+            opt_into_json(hash_or_height)?,
+            opt_into_json(use_index)?,
+        ];
+        self.call(
+            "gettxoutsetinfo",
+            handle_defaults(&mut args, &[null(), null(), null()]),
+        )
     }
 
     /// Returns information about network traffic, including bytes in, bytes out,
@@ -1167,7 +1301,10 @@ pub trait RpcApi: Sized {
     /// Returns the estimated network hashes per second based on the last n blocks.
     fn get_network_hash_ps(&self, nblocks: Option<u64>, height: Option<u64>) -> Result<f64> {
         let mut args = [opt_into_json(nblocks)?, opt_into_json(height)?];
-        self.call("getnetworkhashps", handle_defaults(&mut args, &[null(), null()]))
+        self.call(
+            "getnetworkhashps",
+            handle_defaults(&mut args, &[null(), null()]),
+        )
     }
 
     /// Returns the total uptime of the server in seconds
@@ -1222,17 +1359,13 @@ impl Client {
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
         let (user, pass) = auth.get_user_pass()?;
         jsonrpc::client::Client::simple_http(url, user, pass)
-            .map(|client| Client {
-                client,
-            })
+            .map(|client| Client { client })
             .map_err(|e| super::error::Error::JsonRpc(e.into()))
     }
 
     /// Create a new Client using the given [jsonrpc::Client].
     pub fn from_jsonrpc(client: jsonrpc::client::Client) -> Client {
-        Client {
-            client,
-        }
+        Client { client }
     }
 
     /// Get the underlying JSONRPC client.
@@ -1307,7 +1440,9 @@ mod tests {
         let tx: bitcoin::Transaction = encode::deserialize(&Vec::<u8>::from_hex("0200000001586bd02815cf5faabfec986a4e50d25dbee089bd2758621e61c5fab06c334af0000000006b483045022100e85425f6d7c589972ee061413bcf08dc8c8e589ce37b217535a42af924f0e4d602205c9ba9cb14ef15513c9d946fa1c4b797883e748e8c32171bdf6166583946e35c012103dae30a4d7870cd87b45dd53e6012f71318fdd059c1c2623b8cc73f8af287bb2dfeffffff021dc4260c010000001976a914f602e88b2b5901d8aab15ebe4a97cf92ec6e03b388ac00e1f505000000001976a914687ffeffe8cf4e4c038da46a9b1d37db385a472d88acfd211500").unwrap()).unwrap();
 
         assert!(client.send_raw_transaction(&tx).is_err());
-        assert!(client.send_raw_transaction(&encode::serialize(&tx)).is_err());
+        assert!(client
+            .send_raw_transaction(&encode::serialize(&tx))
+            .is_err());
         assert!(client.send_raw_transaction("deadbeef").is_err());
         assert!(client.send_raw_transaction("deadbeef".to_owned()).is_err());
     }
